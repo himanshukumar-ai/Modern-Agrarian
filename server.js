@@ -1,6 +1,21 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { initializeApp } = require("firebase/app");
+const { getFirestore, collection, addDoc } = require("firebase/firestore");
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZ1X1wOi96JrVtZbt2RV3hoGuIwtACIwg",
+  authDomain: "modern-agrarian.firebaseapp.com",
+  projectId: "modern-agrarian",
+  storageBucket: "modern-agrarian.firebasestorage.app",
+  messagingSenderId: "999542154868",
+  appId: "1:999542154868:web:d912622fe4542d063f5321",
+  measurementId: "G-ZJ7JM1N7KM"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -116,16 +131,23 @@ app.get('/api/products', (req, res) => {
 });
 
 // API endpoint to capture newsletter signups
-app.post('/api/subscribe', (req, res) => {
+app.post('/api/subscribe', async (req, res) => {
     const { email } = req.body;
     if (!email || !email.includes('@')) {
         return res.status(400).json({ error: 'Valid email is required' });
     }
     
-    // In a real application, you would save this to a database
-    console.log(`[Newsletter] New subscriber: ${email}`);
-    
-    res.json({ message: 'Successfully subscribed to the newsletter!' });
+    try {
+        await addDoc(collection(db, "subscribers"), {
+            email: email,
+            timestamp: new Date()
+        });
+        console.log(`[Newsletter] New subscriber saved to Firebase: ${email}`);
+        res.json({ message: 'Successfully subscribed to the newsletter!' });
+    } catch (e) {
+        console.error("Error adding to Firebase: ", e);
+        res.status(500).json({ error: 'Failed to subscribe. Please try again later.' });
+    }
 });
 
 // Start the server
